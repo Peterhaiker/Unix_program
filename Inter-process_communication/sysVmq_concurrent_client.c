@@ -1,3 +1,6 @@
+//这个程序利用system V message queue来实现并发的服务器模型，服务器为每个客户端分配一个线程执行
+//v1.0服务器没有使用线程导致出错
+//v1.1加入线程
 #include<stdio.h>
 #include<string.h>
 #include<sys/msg.h>
