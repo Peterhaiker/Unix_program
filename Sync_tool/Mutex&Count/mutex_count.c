@@ -25,7 +25,7 @@ void*consumer(void*count)
     for(int i=0;i<10000;++i){
         pthread_mutex_lock(&product_queue.mutex);
         //if no product to use,then sleep and wait to be wake
-        if(product_queue.used_space==0)
+        while(product_queue.used_space==0)
             pthread_cond_wait(&product_queue.consumer_cond,&product_queue.mutex);
 
         if(product_queue.buf[product_queue.consumer_index]!=product_queue.consumer_index)
@@ -36,13 +36,13 @@ void*consumer(void*count)
         product_queue.consumer_index++;
         product_queue.consumer_index%=MAX;//this space can loop,no end spot
 
-        product_queue.free_space+=1;
-        product_queue.used_space-=1;
+        product_queue.free_space++;
+        product_queue.used_space--;
         if(product_queue.free_space>MAX||product_queue.used_space<0)
             printf("free:%d,used:%d\n",product_queue.free_space,product_queue.used_space);
         pthread_mutex_unlock(&product_queue.mutex);
         //if producer wait for wake,then wake it
-        if(product_queue.free_space==1)
+        if(product_queue.free_space>=1)
             pthread_cond_broadcast(&product_queue.product_cond);
     }
     return 0;
@@ -53,14 +53,13 @@ void*producer(void*count)
     //test
     puts("product");
     for(;;){
+    if(10000==total){
+        pthread_exit(NULL);
+    }
     //a total of 10000 production
     pthread_mutex_lock(&product_queue.mutex);
-    if(10000==total){
-        pthread_mutex_unlock(&product_queue.mutex);
-        return 0;
-    }
     //if no space to produce,then sleep to wait to be wake
-    if(0==product_queue.free_space)
+    while(0==product_queue.free_space)
         pthread_cond_wait(&product_queue.product_cond,&product_queue.mutex);
     product_queue.buf[product_queue.producer_index]=product_queue.producer_index;
     total+=1;
@@ -72,15 +71,16 @@ void*producer(void*count)
     product_queue.producer_index%=MAX;
 
     //the free space minus one
-    product_queue.free_space-=1;
+    product_queue.free_space--;
     //the used space add one
-    product_queue.used_space+=1;
+    product_queue.used_space++;
     if(product_queue.free_space<0||product_queue.used_space>MAX)
         printf("free:%d,used:%d\n",product_queue.free_space,product_queue.used_space);
     //must keep the sequence:unlock first,signal second
     pthread_mutex_unlock(&product_queue.mutex);
     //if consumer wait for wake,then wake it
-    if(product_queue.used_space==1)
+    //第一次出错在这里，如果在这里终端再执行第二个生产者则不会激活消费者,所以把==0改为>0
+    if(product_queue.used_space>0)
         pthread_cond_signal(&product_queue.consumer_cond);
     }
     return 0;
