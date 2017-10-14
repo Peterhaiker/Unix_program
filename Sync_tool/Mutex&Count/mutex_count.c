@@ -7,6 +7,7 @@
 #include<errno.h>
 
 #define MAX 1024
+
 int total=0;
 struct product{
     int producer_index;   //the next position producer will produce
@@ -20,8 +21,6 @@ struct product{
 
 void*consumer(void*count)
 {
-    //test
-    puts("consumer");
     for(int i=0;i<10000;++i){
         pthread_mutex_lock(&product_queue.mutex);
         //if no product to use,then sleep and wait to be wake
@@ -31,15 +30,11 @@ void*consumer(void*count)
         if(product_queue.buf[product_queue.consumer_index]!=product_queue.consumer_index)
             printf("buf[%d]=%d\n",product_queue.consumer_index,product_queue.buf[product_queue.consumer_index]);
 
-        //test
-        printf("consumer:%d times\n",i+1);
         product_queue.consumer_index++;
         product_queue.consumer_index%=MAX;//this space can loop,no end spot
 
         product_queue.free_space++;
         product_queue.used_space--;
-        if(product_queue.free_space>MAX||product_queue.used_space<0)
-            printf("free:%d,used:%d\n",product_queue.free_space,product_queue.used_space);
         pthread_mutex_unlock(&product_queue.mutex);
         //if producer wait for wake,then wake it
         if(product_queue.free_space>=1)
@@ -50,20 +45,21 @@ void*consumer(void*count)
 
 void*producer(void*count)
 {
-    //test
-    puts("product");
     for(;;){
-    if(10000==total){
-        pthread_exit(NULL);
-    }
-    //a total of 10000 production
     pthread_mutex_lock(&product_queue.mutex);
     //if no space to produce,then sleep to wait to be wake
-    while(0==product_queue.free_space)
+    while(0==product_queue.free_space){
         pthread_cond_wait(&product_queue.product_cond,&product_queue.mutex);
+        //if product 10000,then quit
+        if(10000==total){
+            pthread_mutex_unlock(&product_queue.mutex);
+            pthread_exit(NULL);
+        }
+    }
     product_queue.buf[product_queue.producer_index]=product_queue.producer_index;
     total+=1;
-    printf("product %d times\n",total);
+    //test
+    //printf("product %d times\n",total);
     *(int*)count+=1;
 
     //offset the pointer to the next position where product will be store
@@ -74,12 +70,10 @@ void*producer(void*count)
     product_queue.free_space--;
     //the used space add one
     product_queue.used_space++;
-    if(product_queue.free_space<0||product_queue.used_space>MAX)
-        printf("free:%d,used:%d\n",product_queue.free_space,product_queue.used_space);
     //must keep the sequence:unlock first,signal second
     pthread_mutex_unlock(&product_queue.mutex);
     //if consumer wait for wake,then wake it
-    //第一次出错在这里，如果在这里终端再执行第二个生产者则不会激活消费者,所以把==0改为>0
+    //第一次出错在这里，在消费者已经在条件变量上等待的时候，如果在这里中断再永远执行生产者则不会激活消费者,所以把==0改为>0
     if(product_queue.used_space>0)
         pthread_cond_signal(&product_queue.consumer_cond);
     }
@@ -88,25 +82,25 @@ void*producer(void*count)
 int main(void)
 {
     pthread_t tid_producer[10],tid_consumer;
-    //ensure have two thread create
-//    pthread_setconcurrency(0);
-    pthread_setconcurrency(11);
-    //test
-    puts("a");
-    int count[10]={0}; //statistics the count of each producer product
-    for(int i=0;i<10;++i){
-        //test
-        printf("create %d\n",i);
+    //ensure have 11 thread create,but useless in linux
+    //pthread_setconcurrency(11);
+    //statistics the count of each producer product
+    int count[10]={0};//this is statistics the product of each producer product
+    //create 10 producer
+    for(int i=0;i<10;++i)
         pthread_create(&tid_producer[i],NULL,producer,(void*)&count[i]);
-    }
-    //test
-    puts("b");
+    //create a consumer
     pthread_create(&tid_consumer,NULL,consumer,NULL);
+    //wait for all product done
     for(int i=0;i<10;++i){
         pthread_join(tid_producer[i],NULL);
-        printf("thread %d:count:%d\n",i,count[i]);
     }
+    //echo the numeric of each producer product
+    for(int i=0;i<10;++i)
+        printf("thread %d:count:%d\n",i,count[i]);
+    //wait for consumer
     pthread_join(tid_consumer,NULL);
+    //echo the state of buffer
     printf("end:free_space:%d,used space:%d\n",product_queue.free_space,product_queue.used_space);
     return 0;
 }
