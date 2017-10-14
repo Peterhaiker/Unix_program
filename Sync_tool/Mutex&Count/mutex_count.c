@@ -50,12 +50,12 @@ void*producer(void*count)
     //if no space to produce,then sleep to wait to be wake
     while(0==product_queue.free_space){
         pthread_cond_wait(&product_queue.product_cond,&product_queue.mutex);
+    }
         //if product 10000,then quit
         if(10000==total){
             pthread_mutex_unlock(&product_queue.mutex);
             pthread_exit(NULL);
         }
-    }
     product_queue.buf[product_queue.producer_index]=product_queue.producer_index;
     total+=1;
     //test
@@ -73,7 +73,6 @@ void*producer(void*count)
     //must keep the sequence:unlock first,signal second
     pthread_mutex_unlock(&product_queue.mutex);
     //if consumer wait for wake,then wake it
-    //第一次出错在这里，在消费者已经在条件变量上等待的时候，如果在这里中断再永远执行生产者则不会激活消费者,所以把==0改为>0
     if(product_queue.used_space>0)
         pthread_cond_signal(&product_queue.consumer_cond);
     }
