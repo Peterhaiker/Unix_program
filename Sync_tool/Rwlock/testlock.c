@@ -11,33 +11,33 @@
 #include<sys/time.h>
 #include<pthread.h>
 #include<unistd.h>
-#include"myrwlock.h"
+//#include"myrwlock.h"
 
-Pthread_rwlock_t rw=PTHREAD_RWLOCK_INITIALIZER;
+pthread_rwlock_t rw=PTHREAD_RWLOCK_INITIALIZER;
 pthread_t tid1,tid2,tid3;
 
 void*th1(void*arg)
 {
-    Pthread_rwlock_rdlock(&rw);
+    pthread_rwlock_rdlock(&rw);
     puts("th1:get read lock");
     sleep(3);
-    Pthread_rwlock_unlock(&rw);
+    pthread_rwlock_unlock(&rw);
     pthread_exit(NULL);
 }
 
 void*th2(void*arg)
 {
-    Pthread_rwlock_wrlock(&rw);
+    pthread_rwlock_wrlock(&rw);
     puts("th2:get write lock");
-    Pthread_rwlock_unlock(&rw);
+    pthread_rwlock_unlock(&rw);
     pthread_exit(NULL);
 }
 
 void*th3(void*arg)
 {
-    Pthread_rwlock_rdlock(&rw);
+    pthread_rwlock_rdlock(&rw);
     puts("th3:get read lock");
-    Pthread_rwlock_unlock(&rw);
+    pthread_rwlock_unlock(&rw);
     pthread_exit(NULL);
 }
 int main(int argc,char*argv[])
@@ -66,7 +66,7 @@ int main(int argc,char*argv[])
     }
     else
         diff.tv_nsec=end.tv_nsec-start.tv_nsec;
-    printf("my lock spend time:%lds,%ldn\n",diff.tv_sec,diff.tv_nsec);
+    printf("sys lock spend time:%lds,%ldn\n",diff.tv_sec,diff.tv_nsec);
     return 0;
 }
 
