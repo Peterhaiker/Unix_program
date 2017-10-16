@@ -81,6 +81,7 @@ int main(int argc,char*argv[])
         return errno;
     }
     //sleep 1 second to ensure therad 1 try to get write lock
+    sleep(1);
     if(-1==pthread_create(&tid2,NULL,th2,NULL)){
         perror("create thread 2 failed");
         return errno;
