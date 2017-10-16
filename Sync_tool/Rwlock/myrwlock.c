@@ -61,8 +61,7 @@ int Pthread_rwlock_rdlock(Pthread_rwlock_t*rw)
         return(result);
     }
     //if writer is running
-    //the comment is writer priority
-    while(-1==rw->rw_state/*||0<rw->wrwaiters*/){
+    while(-1==rw->rw_state||0<rw->wrwaiters){
         pthread_cleanup_push(pthread_cancelrd,(void*)rw);
         rw->rdwaiters++;
         result=pthread_cond_wait(&rw->rdcont,&rw->mutex);
@@ -87,8 +86,7 @@ int Pthread_rwlock_tryrdlock(Pthread_rwlock_t*rw)
     int result=0;
     if((result=pthread_mutex_lock(&rw->mutex))!=0)
         return(result);
-    //the comment is writer priority
-    if(-1==rw->rw_state/*||0<rw->wrwaiters*/)
+    if(-1==rw->rw_state||0<rw->wrwaiters)
         return(EBUSY);
     else
         rw->rdwaiters++;
@@ -155,18 +153,18 @@ int Pthread_rwlock_unlock(Pthread_rwlock_t*rw)
     else
         rw->rw_state--;
     //now,writer priority,so wake it if has writer sleep
-    /*if(0<rw->wrwaiters){*/
-    if(0<rw->rdwaiters)
+    if(0<rw->wrwaiters){
+    /*if(0<rw->rdwaiters)
         //test whether have readers running
-        result=pthread_cond_broadcast(&rw->rdcont);
-        /*if(rw->rw_state==0)
+        result=pthread_cond_broadcast(&rw->rdcont);*/
+        if(rw->rw_state==0)
             result=pthread_cond_signal(&rw->wrcont);
-    }*/
+    }
     //maybe writer will be hungry
     //
-    else if(0</*rw->rdwaiters*/rw->wrwaiters)
-        //result=pthread_cond_broadcast(&rw->rdcont);
-        result=pthread_cond_signal(&rw->wrcont);
+    else if(0<rw->rdwaiters/*rw->wrwaiters*/)
+        result=pthread_cond_broadcast(&rw->rdcont);
+        //result=pthread_cond_signal(&rw->wrcont);
     pthread_mutex_unlock(&rw->mutex);
     return(result);
 }
