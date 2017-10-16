@@ -62,8 +62,10 @@ int Pthread_rwlock_rdlock(Pthread_rwlock_t*rw)
     }
     //if writer is running
     while(-1==rw->rw_state||0<rw->wrwaiters){
+        pthread_cleanup_push(pthread_cancelrd,(void*)rw);
         rw->rdwaiters++;
         result=pthread_cond_wait(&rw->rdcont,&rw->mutex);
+        pthread_cleanup_pop(0);
         rw->rdwaiters--;
         if(0!=result)
             break;
@@ -102,8 +104,10 @@ int Pthread_rwlock_wrlock(Pthread_rwlock_t*rw)
     if((result=pthread_mutex_lock(&rw->mutex))!=0)
         return(result);
     while(rw->rw_state!=0){
+        pthread_cleanup_push(pthread_cancelwr,(void*)rw);
         rw->wrwaiters++;
         result=pthread_cond_wait(&rw->wrcont,&rw->mutex);
+        pthread_cleanup_pop(0);
         rw->wrwaiters--;
         if(0!=result)
             break;
@@ -160,4 +164,18 @@ int Pthread_rwlock_unlock(Pthread_rwlock_t*rw)
         result=pthread_cond_broadcast(&rw->rdcont);
     pthread_mutex_unlock(&rw->mutex);
     return(result);
+}
+
+void pthread_cancelrd(void*arg)
+{
+    Pthread_rwlock_t*rw=(Pthread_rwlock_t*)arg;
+    rw->rdwaiters--;
+    pthread_mutex_unlock(&rw->mutex);
+}
+
+void pthread_cancelwr(void*arg)
+{
+    Pthread_rwlock_t*rw=(Pthread_rwlock_t*)arg;
+    rw->wrwaiters--;
+    pthread_mutex_unlock(&rw->mutex);
 }

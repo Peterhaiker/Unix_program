@@ -17,4 +17,6 @@ int Pthread_rwlock_wrlock(Pthread_rwlock_t*);
 int Pthread_rwlock_tryrdlock(Pthread_rwlock_t*);
 int Pthread_rwlock_trywrlock(Pthread_rwlock_t*);
 int Pthread_rwlock_unlock(Pthread_rwlock_t*);
+void pthread_cancelrd(void*);
+void pthread_cancelwr(void*);
 #endif

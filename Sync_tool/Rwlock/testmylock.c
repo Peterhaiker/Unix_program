@@ -48,7 +48,7 @@ int main(int argc,char*argv[])
     pthread_join(tid2,NULL);
     puts("th2 canceled");
     pthread_join(tid1,NULL);
-    puts("th1 canceled");
+    puts("th1 returned");
     return 0;
 }
 
