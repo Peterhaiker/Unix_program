@@ -26,15 +26,15 @@ int main(int argc,char*argv[])
     //now set a read lock to the file
     pid_t pid;
     struct flock lock;
-    lock.l_type=F_RDLCK;
+    lock.l_type=F_WRLCK;
     lock.l_whence=SEEK_SET;
     lock.l_start=0;
     lock.l_len=0;
     if(-1==fcntl(fd,F_SETLK,&lock)){
-        perror("main process set read lock failed");
+        perror("main process set write lock failed");
         return errno;
     }
-    puts("main process set read lock");
+    puts("main process set write lock");
     if((pid=fork())<0){
         perror("create child 1 failed");
         return errno;
@@ -49,8 +49,6 @@ int main(int argc,char*argv[])
             return 0;
         }
         puts("child 1 set write lock");
-        //ensure father process running
-        sleep(1);
         lock.l_type=F_UNLCK;
         if(-1==fcntl(fd,F_SETLKW,&lock)){
             perror("child 1 unlock lock failed");
@@ -85,7 +83,7 @@ int main(int argc,char*argv[])
     sleep(1);
     lock.l_type=F_UNLCK;
     if(-1==fcntl(fd,F_SETLKW,&lock)){
-        perror("main process unlock read lock failed");
+        perror("main process unlock failed");
         return errno;
     }
     while(-1!=waitpid(-1,NULL,WNOHANG));
