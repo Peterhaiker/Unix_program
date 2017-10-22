@@ -91,5 +91,8 @@ int main(int argc,char*argv[])
     printf("producer[%d]=%d\n",i+1,nproduct[i]);
   for(i=0;i<10;++i)
     printf("consumer[%d]=%d\n",i+1,nconsumer[i]);
+  sem_destroy(&shared.mutex);
+  sem_destroy(&shared.nempty);
+  sem_destroy(&shared.nstored);
   return 0;
 }
