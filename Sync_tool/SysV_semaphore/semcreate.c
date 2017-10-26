@@ -36,8 +36,16 @@ int main(int argc,char*argv[])
     return errno;
   }
   if(-1==(semid=semget(ftok(argv[optind],0),num,flag))){
+    if(EEXIST==errno){
+      if(-1==(semid=semget(ftok(argv[optind],0),0,0))){
+        puts("file exist,buf open failed");
+        return errno;
+      }
+    }
+    else{
     puts("create sysV semaphore failed");
     return errno;
+    }
   }
   return 0;
 }
